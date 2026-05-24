@@ -11,8 +11,8 @@ android {
         applicationId = "com.xjyzs.clipboard"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         androidResources. localeFilters+= listOf("zh-rCN")
@@ -131,8 +131,8 @@ dependencies {
     implementation("io.socket:socket.io-client:2.1.0") {
         exclude(group = "org.json", module = "json")
     }
-    implementation("dev.chrisbanes.haze:haze:2.0.0-alpha01")
-    implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha01")
-    implementation("dev.chrisbanes.haze:haze-blur-materials-android:2.0.0-alpha01")
+    implementation("dev.chrisbanes.haze:haze:2.0.0-alpha02")
+    implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha02")
+    implementation("dev.chrisbanes.haze:haze-blur-materials-android:2.0.0-alpha02")
     compileOnly(files("lib/XposedBridgeAPI-89.jar"))
 }

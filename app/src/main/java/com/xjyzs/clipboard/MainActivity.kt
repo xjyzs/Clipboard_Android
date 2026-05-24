@@ -3,6 +3,8 @@ package com.xjyzs.clipboard
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -29,6 +31,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -47,7 +50,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -65,14 +67,13 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.xjyzs.clipboard.ui.theme.ClipboardTheme
 import dev.chrisbanes.haze.blur.blurEffect
@@ -199,6 +200,7 @@ fun MainUI() {
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent
     ) { innerPadding ->
+        val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val hazeState = rememberHazeState()
         Column(
             Modifier
@@ -209,12 +211,10 @@ fun MainUI() {
         ) {
             val h = with(density) { textFieldHeightPx.toDp() + 20.dp }
             Spacer(Modifier.height(h))
-            SelectionContainer {
-                Column(
-                    Modifier.fillMaxSize()
-                ) {
+            SelectionContainer(Modifier.weight(1f)) {
+                Column(Modifier.clickable{clipboardManager.setPrimaryClip(ClipData.newPlainText(null, remoteTxt))}) {
                     if (remoteTxt != null) {
-                        Text(remoteTxt.toString())
+                        Text(remoteTxt.toString(), Modifier.fillMaxSize())
                     } else {
                         LoadingIndicator()
                     }
@@ -227,7 +227,7 @@ fun MainUI() {
                 .onSizeChanged { size -> textFieldHeightPx = size.height },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            var txtToSend by remember { mutableStateOf("") }
+            var txtToSend by remember { mutableStateOf(TextFieldValue("")) }
             AppTextField(
                 txtToSend,
                 { txtToSend = it },
@@ -240,6 +240,20 @@ fun MainUI() {
                             backgroundColor = bgColor
                         }
                     },
+                trailingIcon = {
+                    if (txtToSend.text.isEmpty()) IconButton({
+                        val clipData = clipboardManager.primaryClip
+                        if (clipData != null && clipData.itemCount > 0) {
+                            val pastedText = clipData.getItemAt(0).text?.toString() ?: ""
+                            txtToSend = TextFieldValue(pastedText, TextRange(pastedText.length))
+                        }
+                    }) {
+                        Icon(
+                            Icons.Default.ContentPaste,
+                            null
+                        )
+                    }
+                }
             )
             Spacer(modifier = Modifier.width(4.dp))
             Box(
@@ -249,10 +263,10 @@ fun MainUI() {
                     .clickable {
                         val socket = SocketHandler.getSocket()
                         if (socket?.connected() == true) {
-                            socket.send(txtToSend)
+                            socket.send(txtToSend.text)
                             MainStateFlow._shouldCopy.value = false
                         }
-                        txtToSend = ""
+                        txtToSend = TextFieldValue("")
                     }
                     .hazeEffect(state = hazeState) {
                         blurEffect {

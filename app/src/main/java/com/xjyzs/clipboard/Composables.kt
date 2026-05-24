@@ -21,16 +21,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlin.math.tan
@@ -38,53 +38,66 @@ import kotlin.math.tan
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
     modifier: Modifier = Modifier,
+    trailingIcon: @Composable (() -> Unit)? = null,
     placeholder: @Composable (() -> Unit)? = null
 ) {
-    var text by remember { mutableStateOf("") }
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        maxLines = 7,
-        interactionSource = interactionSource,
-        textStyle = LocalTextStyle.current.copy(if (!isSystemInDarkTheme()) Color.Black else Color.White),
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 40.dp)
-            .border(
-                width = 1.5.dp,
-                color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = RoundedCornerShape(20.dp)
-            )
-            .background(
-                Color.Transparent,
-                RoundedCornerShape(20.dp)
-            ),
-        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-        decorationBox = { innerTextField ->
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center) {
-                TextFieldDefaults.DecorationBox(
-                    value = text,
-                    innerTextField = innerTextField,
-                    enabled = true,
-                    singleLine = false,
-                    visualTransformation = VisualTransformation.None,
-                    interactionSource = interactionSource,
-                    placeholder = placeholder,
-                    container = {},
-                    contentPadding = PaddingValues(
-                        horizontal = 12.dp,
-                        vertical = 6.dp
-                    )
+    Box(modifier) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            maxLines = 7,
+            interactionSource = interactionSource,
+            textStyle = LocalTextStyle.current.copy(if (!isSystemInDarkTheme()) Color.Black else Color.White),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 40.dp)
+                .border(
+                    width = 1.5.dp,
+                    color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    shape = RoundedCornerShape(20.dp)
                 )
+                .background(
+                    Color.Transparent,
+                    RoundedCornerShape(20.dp)
+                ),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            decorationBox = { innerTextField ->
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center) {
+                    TextFieldDefaults.DecorationBox(
+                        value = value.text,
+                        innerTextField = innerTextField,
+                        enabled = true,
+                        singleLine = false,
+                        visualTransformation = VisualTransformation.None,
+                        interactionSource = interactionSource,
+                        placeholder = placeholder,
+                        trailingIcon = null,
+                        container = {},
+                        contentPadding = PaddingValues(
+                            start = 12.dp,
+                            top = 6.dp,
+                            end = if (trailingIcon != null) 44.dp else 12.dp,
+                            bottom = 6.dp
+                        )
+                    )
+                }
+            }
+        )
+        if (trailingIcon != null) {
+            Box(
+                modifier = Modifier.matchParentSize(),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                trailingIcon()
             }
         }
-    )
+    }
 }
 
 @Composable
