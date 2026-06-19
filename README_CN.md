@@ -35,6 +35,12 @@
 | **多架构** | 支持 arm64、arm、x86、x86_64 及通用版本 |
 | **省电优化** | 智能电池优化处理，确保后台同步可靠 |
 
+## 服务端下载
+[Clipboard_Server](https://github.com/xjyzs/Clipboard_Server)
+
+## 其他客户端下载
+[Windows)](https://github.com/xjyzs/Clipboard_Windows)
+
 ## 📦 工作原理
 
 ```

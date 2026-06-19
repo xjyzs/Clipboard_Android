@@ -35,6 +35,13 @@ Network Clipboard is a **free & open-source** Android client that automatically 
 | **Multi-Arch** | Builds for arm64, arm, x86, x86_64, and universal |
 | **Battery Aware** | Smart battery optimization handling for reliable background sync |
 
+## Server Download
+Get the self-hosted server component here:
+[Clipboard_Server](https://github.com/xjyzs/Clipboard_Server)
+
+## Other Clients
+- [Windows](https://github.com/xjyzs/Clipboard_Windows)
+
 ## 📦 Architecture
 
 ```
