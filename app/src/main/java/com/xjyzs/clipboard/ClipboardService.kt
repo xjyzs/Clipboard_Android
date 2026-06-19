@@ -1,6 +1,5 @@
 package com.xjyzs.clipboard
 
-import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
@@ -13,10 +12,9 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.IBinder
-import android.os.PowerManager
-import android.preference.PreferenceManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import io.socket.client.IO
 import io.socket.client.Socket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +23,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-
+import java.net.URI
 
 object MainStateFlow {
     var _status = MutableStateFlow(Status.DISCONNECTED)
@@ -62,10 +60,25 @@ class ClipboardService : Service() {
     }
 
     private fun initSocket(url: String) {
-        MainStateFlow._status.value= Status.DISCONNECTED
+        MainStateFlow._status.value = Status.DISCONNECTED
         SocketHandler.closeConnection()
         try {
-            SocketHandler.setSocket(url)
+            val uri = URI(url)
+            val pathString = uri.path ?: ""
+            val opts = IO.Options().apply {
+                transports = arrayOf("websocket")
+            }
+            if (pathString.isNotEmpty() && pathString != "/") {
+                val portStr = if (uri.port != -1) ":${uri.port}" else ""
+                val baseUrl = "${uri.scheme}://${uri.host}$portStr"
+                val cleanSubRoute = pathString.removeSuffix("/")
+                val formattedPath = "$cleanSubRoute/socket.io/"
+                opts.path = formattedPath
+                SocketHandler.setSocket(baseUrl, opts)
+            } else {
+                SocketHandler.setSocket(url)
+            }
+
             SocketHandler.establishConnection()
             val socket = SocketHandler.getSocket()
             socket?.on(Socket.EVENT_CONNECT) {
@@ -73,7 +86,7 @@ class ClipboardService : Service() {
             }
             socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
                 MainStateFlow._shouldCopy.value = false
-                MainStateFlow._log.value = "错误: ${args.last()}"
+                MainStateFlow._log.value = "错误: ${args.lastOrNull() ?: "连接失败"}"
                 MainStateFlow._status.value = Status.DISCONNECTED
             }
             socket?.on(Socket.EVENT_DISCONNECT) {
@@ -90,8 +103,11 @@ class ClipboardService : Service() {
                 MainStateFlow._shouldCopy.value = true
             }
         } catch (e: Exception) {
-            if (e.message?.contains("parse the host") == true) MainStateFlow._log.value =
-                "请配置服务器 URL" else MainStateFlow._log.value = "错误: ${e.message}"
+            if (e.message?.contains("parse the host") == true) {
+                MainStateFlow._log.value = "请配置服务器 URL"
+            } else {
+                MainStateFlow._log.value = "错误: ${e.message}"
+            }
         }
     }
 
@@ -115,7 +131,7 @@ class ClipboardService : Service() {
         super.onCreate()
         val filter = IntentFilter("com.xjyzs.clipboard.CLIPBOARD_RECEIVER")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            this.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+            this.registerReceiver(receiver, filter, RECEIVER_EXPORTED)
         else
             ContextCompat.registerReceiver(
                 this,

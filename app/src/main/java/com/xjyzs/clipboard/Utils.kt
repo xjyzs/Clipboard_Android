@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.PowerManager
 import io.socket.client.IO
 import io.socket.client.Socket
-import java.net.URISyntaxException
 
 enum class Status {
     CONNECTED, DISCONNECTED
@@ -14,12 +13,14 @@ object SocketHandler {
     private var mSocket: Socket? = null
 
     @Synchronized
-    fun setSocket(url: String) {
+    fun setSocket(url: String, options: IO.Options? = null) {
         try {
-            if (mSocket == null) {
-                mSocket = IO.socket(url)
+            mSocket = if (options != null) {
+                IO.socket(url, options)
+            } else {
+                IO.socket(url)
             }
-        } catch (e: URISyntaxException) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
