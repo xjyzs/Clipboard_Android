@@ -8,7 +8,7 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=google&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/xjyzs/Clipboard?color=orange)](https://github.com/xjyzs/Clipboard/releases)
+[![Release](https://img.shields.io/github/v/release/xjyzs/Clipboard_Android?color=orange)](https://github.com/xjyzs/Clipboard/releases)
 
 [中文](README_CN.md) · [Report Bug](https://github.com/xjyzs/Clipboard/issues) · [Request Feature](https://github.com/xjyzs/Clipboard/issues)
 
