@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,15 +51,15 @@ fun WelcomeUI() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Image(painterResource(R.drawable.ic_launcher_foreground), null)
-            Text("欢迎使用 网络剪贴板", fontSize = 32.sp)
-            Text("免费开源的跨设备剪贴板同步工具", color = MaterialTheme.colorScheme.secondary)
+            Text(stringResource(R.string.welcome_to_network_clipboard), fontSize = 32.sp)
+            Text(stringResource(R.string.free_open_source_cross_device_clipboard_sync_tool), color = MaterialTheme.colorScheme.secondary)
             Spacer(Modifier.size(40.dp))
             Button({
                 context.startActivity(Intent(context, SettingsActivity::class.java))
                 (context as ComponentActivity).finish()
             }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("开始配置")
+                    Text(stringResource(R.string.start_configuration))
                     Icon(Icons.Default.ArrowUpward, null, Modifier.rotate(90f))
                 }
             }

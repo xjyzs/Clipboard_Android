@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -107,7 +108,6 @@ fun MainUI() {
     var isIgnoringBatteryOptimizations by remember { mutableStateOf(true) }
     val pref = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val snackbarHostState = remember { SnackbarHostState() }
-
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissions(
@@ -126,10 +126,8 @@ fun MainUI() {
     }
     val scope = rememberCoroutineScope()
     LaunchedEffect(log) {
-        if (log.isNotEmpty())
-            scope.launch { snackbarHostState.showSnackbar(log) }
+        if (log.isNotEmpty()) scope.launch { snackbarHostState.showSnackbar(log) }
     }
-
     if (!isIgnoringBatteryOptimizations) {
         AlertDialog(
             {},
@@ -139,15 +137,15 @@ fun MainUI() {
                     intent.data = "package:${context.packageName}".toUri()
                     context.startActivity(intent)
                     isIgnoringBatteryOptimizations = true
-                }) { Text("去设置") }
+                }) { Text(stringResource(R.string.go_to_settings)) }
             },
             dismissButton = {
                 TextButton({
                     isIgnoringBatteryOptimizations = true
-                }) { Text("取消") }
+                }) { Text(stringResource(R.string.cancel)) }
             },
-            title = { Text("权限申请") },
-            text = { Text("在手机系统设置中，允许网络剪贴板保持后台运行，否则可能无法及时同步剪贴板") })
+            title = { Text(stringResource(R.string.permission_request)) },
+            text = { Text(stringResource(R.string.battery_optimization_description)) })
     }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val density = LocalDensity.current
@@ -173,10 +171,10 @@ fun MainUI() {
                             if (status == Status.DISCONNECTED) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     LoadingIndicator(Modifier.size(14.dp), color = Color.White)
-                                    Text("连接中...", fontSize = 12.sp, color = Color.White)
+                                    Text(stringResource(R.string.connecting), fontSize = 12.sp, color = Color.White)
                                 }
                             } else {
-                                Text("已连接", fontSize = 12.sp, color = Color.White)
+                                Text(stringResource(R.string.connected), fontSize = 12.sp, color = Color.White)
                             }
                         }
                     }
@@ -190,8 +188,7 @@ fun MainUI() {
                         )
                     ) { Icon(Icons.Default.Settings, null) }
                 }, colors = TopAppBarDefaults.topAppBarColors().copy(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
+                    containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent
                 ), scrollBehavior = scrollBehavior
             )
         },
@@ -200,7 +197,8 @@ fun MainUI() {
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent
     ) { innerPadding ->
-        val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipboardManager =
+            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val hazeState = rememberHazeState()
         Column(
             Modifier
@@ -211,10 +209,21 @@ fun MainUI() {
         ) {
             val h = with(density) { textFieldHeightPx.toDp() + 20.dp }
             Spacer(Modifier.height(h))
-            SelectionContainer(Modifier.weight(1f)) {
-                Column(Modifier.clickable{clipboardManager.setPrimaryClip(ClipData.newPlainText(null, remoteTxt))}) {
+
+            SelectionContainer {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            clipboardManager.setPrimaryClip(
+                                ClipData.newPlainText(
+                                    null, remoteTxt
+                                )
+                            )
+                        }
+                ) {
                     if (remoteTxt != null) {
-                        Text(remoteTxt.toString(), Modifier.fillMaxSize())
+                        Text(remoteTxt.toString(), Modifier.fillMaxWidth())
                     } else {
                         LoadingIndicator()
                     }
@@ -249,12 +258,10 @@ fun MainUI() {
                         }
                     }) {
                         Icon(
-                            Icons.Default.ContentPaste,
-                            null
+                            Icons.Default.ContentPaste, null
                         )
                     }
-                }
-            )
+                })
             Spacer(modifier = Modifier.width(4.dp))
             Box(
                 Modifier

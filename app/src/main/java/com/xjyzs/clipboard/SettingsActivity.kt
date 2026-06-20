@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.lifecycle.Lifecycle
@@ -83,7 +84,7 @@ fun SettingsUI() {
     }
     Scaffold(
         topBar = {
-            LargeFlexibleTopAppBar(title = { Text("设置") }, navigationIcon = {
+            LargeFlexibleTopAppBar(title = { Text(stringResource(R.string.settings)) }, navigationIcon = {
                 IconButton(
                     onClick = {
                         save()
@@ -104,7 +105,7 @@ fun SettingsUI() {
                 .verticalScroll(scrollState)
         ) {
             TextField(
-                label = { Text("服务器 URL") },
+                label = { Text(stringResource(R.string.server_url)) },
                 value = url,
                 onValueChange = { url = it },
                 modifier = Modifier.fillMaxWidth(),)

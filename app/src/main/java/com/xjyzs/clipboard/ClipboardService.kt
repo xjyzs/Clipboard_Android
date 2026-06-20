@@ -86,7 +86,7 @@ class ClipboardService : Service() {
             }
             socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
                 MainStateFlow._shouldCopy.value = false
-                MainStateFlow._log.value = "错误: ${args.lastOrNull() ?: "连接失败"}"
+                MainStateFlow._log.value = getString(R.string.error_with_message, args.lastOrNull() ?: getString(R.string.connection_failed))
                 MainStateFlow._status.value = Status.DISCONNECTED
             }
             socket?.on(Socket.EVENT_DISCONNECT) {
@@ -104,9 +104,9 @@ class ClipboardService : Service() {
             }
         } catch (e: Exception) {
             if (e.message?.contains("parse the host") == true) {
-                MainStateFlow._log.value = "请配置服务器 URL"
+                MainStateFlow._log.value = getString(R.string.please_configure_server_url)
             } else {
-                MainStateFlow._log.value = "错误: ${e.message}"
+                MainStateFlow._log.value = getString(R.string.error_with_message, e.message)
             }
         }
     }
@@ -142,12 +142,12 @@ class ClipboardService : Service() {
         getSharedPreferences("settings", MODE_PRIVATE)
             .registerOnSharedPreferenceChangeListener(prefListener)
         val channel = NotificationChannel(
-            "clipboard", "网络剪贴板", NotificationManager.IMPORTANCE_LOW
+            "clipboard", getString(R.string.network_clipboard), NotificationManager.IMPORTANCE_LOW
         ).apply {}
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
         val notification =
-            NotificationCompat.Builder(this, "clipboard").setContentTitle("网络剪贴板已启动")
+            NotificationCompat.Builder(this, "clipboard").setContentTitle(getString(R.string.network_clipboard_started))
                 .setSmallIcon(R.drawable.ic_launcher_foreground).build()
         startForeground(1002, notification)
     }
