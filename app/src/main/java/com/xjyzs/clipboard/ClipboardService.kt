@@ -6,19 +6,19 @@ import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.IBinder
+import android.service.quicksettings.TileService
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import io.socket.client.IO
 import io.socket.client.Socket
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -83,6 +83,11 @@ class ClipboardService : Service() {
             val socket = SocketHandler.getSocket()
             socket?.on(Socket.EVENT_CONNECT) {
                 MainStateFlow._status.value = Status.CONNECTED
+                AppState.isRunning = true
+                TileService.requestListeningState(
+                    this.applicationContext,
+                    ComponentName(this, AppLauncherTileService::class.java)
+                )
             }
             socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
                 MainStateFlow._shouldCopy.value = false
@@ -120,8 +125,6 @@ class ClipboardService : Service() {
                 }
             }
         }
-    private val serviceJob = SupervisorJob()
-    private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
 
     override fun onBind(p0: Intent?): IBinder? {
         return null
@@ -163,5 +166,14 @@ class ClipboardService : Service() {
         unregisterReceiver(receiver)
         getSharedPreferences("settings", MODE_PRIVATE)
             .unregisterOnSharedPreferenceChangeListener(prefListener)
+    }
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        AppState.isRunning = false
+        TileService.requestListeningState(
+            this.applicationContext,
+            ComponentName(this, AppLauncherTileService::class.java)
+        )
+        stopSelf()
     }
 }
