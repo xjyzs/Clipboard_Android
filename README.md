@@ -100,7 +100,7 @@ APKs will be in `app/build/outputs/apk/`.
 
 Contributions are welcome! Feel free to:
 
-- 🐛 Report bugs via [Issues](https://github.com/xjyzs/Clipboard/issues)
+- 🐛 Report bugs via [Issues](https://github.com/xjyzs/Clipboard_Android/issues)
 - 💡 Suggest features
 - 🔧 Submit Pull Requests
 
