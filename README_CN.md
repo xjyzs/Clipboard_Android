@@ -99,7 +99,7 @@ APK 输出路径：`app/build/outputs/apk/`
 
 欢迎参与项目改进！
 
-- 🐛 通过 [Issues](https://github.com/xjyzs/Clipboard/issues) 报告 Bug
+- 🐛 通过 [Issues](https://github.com/xjyzs/Clipboard_Android/issues) 报告 Bug
 - 💡 提出功能建议
 - 🔧 提交 Pull Request
 
