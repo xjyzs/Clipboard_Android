@@ -1,21 +1,24 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.baselineprofile)
 }
 
 android {
     namespace = "com.xjyzs.clipboard"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) { minorApiLevel = 2 }
+    }
 
     defaultConfig {
         applicationId = "com.xjyzs.clipboard"
         minSdk = 26
         targetSdk = 37
-        versionCode = 5
-        versionName = "1.4"
+        versionCode = 6
+        versionName = "1.4.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        androidResources.localeFilters+= listOf("zh","en")
+        androidResources.localeFilters += listOf("zh", "en")
     }
     signingConfigs {
         val hasSigningInfo =
@@ -104,13 +107,23 @@ android {
     }
 }
 
+baselineProfile {
+    saveInSrc = true
+    mergeIntoMain = true
+    dexLayoutOptimization = true
+    variants {
+        create("arm64Minsdk35Release") {
+            from(project(":baselineprofile"))
+        }
+    }
+}
+
 dependencies {
-    //implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.ui)
-    //implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.compose.adaptive)
     implementation(libs.androidx.compose.material3)
@@ -120,19 +133,17 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.material.icons.extended)
-    //implementation(libs.androidx.material)
     implementation(libs.androidx.lifecycle.process)
     implementation("io.socket:socket.io-client:2.1.0") {
         exclude(group = "org.json", module = "json")
     }
-    implementation("dev.chrisbanes.haze:haze:2.0.0-alpha03")
-    implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha03")
-    implementation("dev.chrisbanes.haze:haze-blur-materials-android:2.0.0-alpha03")
+    implementation("dev.chrisbanes.haze:haze:2.1.0")
+    implementation("dev.chrisbanes.haze:haze-blur:2.1.0")
+    implementation("dev.chrisbanes.haze:haze-blur-materials-android:2.1.0")
     compileOnly(files("lib/XposedBridgeAPI-89.jar"))
 }

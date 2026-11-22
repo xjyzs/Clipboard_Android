@@ -25,4 +25,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Clipboard"
 include(":app")
- 
+include(":baselineprofile")

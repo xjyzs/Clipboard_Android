@@ -15,3 +15,4 @@
 local.properties
 /app/arm64Minsdk29/
 /app/arm64Minsdk35/
+/.idea/

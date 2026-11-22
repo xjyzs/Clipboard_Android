@@ -10,8 +10,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
@@ -37,7 +37,6 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -78,16 +77,32 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.xjyzs.clipboard.ui.theme.ClipboardTheme
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val pref = getSharedPreferences("settings", MODE_PRIVATE)
+        val url = pref.getString("url", "")!!
+        if (url.isEmpty()) {
+            startActivity(Intent(this, WelcomeActivity::class.java))
+            finish()
+            return
+        }
+        val serIntent = Intent(this, ClipboardService::class.java).apply {
+            putExtra("url", url)
+        }
+        ContextCompat.startForegroundService(this, serIntent)
+
         setContent {
             ClipboardTheme {
                 GradientBackground {
@@ -99,15 +114,15 @@ class MainActivity : ComponentActivity() {
 }
 
 @SuppressLint("BatteryLife")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MainUI() {
     val context = LocalContext.current
     val status by MainStateFlow.status.collectAsStateWithLifecycle()
+    ReportDrawnWhen { status != Status.DISCONNECTED }
     val remoteTxt by MainStateFlow.remoteTxt.collectAsStateWithLifecycle()
     val log by MainStateFlow.log.collectAsStateWithLifecycle()
     var isIgnoringBatteryOptimizations by remember { mutableStateOf(true) }
-    val pref = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -115,15 +130,9 @@ fun MainUI() {
                 context as Activity, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 2
             )
         }
-        val url = pref.getString("url", "")!!
-        val serIntent = Intent(context, ClipboardService::class.java).apply {
-            putExtra("url", pref.getString("url", "")!!)
+        isIgnoringBatteryOptimizations = withContext(Dispatchers.IO) {
+            isIgnoringBatteryOptimizations(context)
         }
-        ContextCompat.startForegroundService(context, serIntent)
-        if (url.isEmpty()) {
-            context.startActivity(Intent(context, WelcomeActivity::class.java))
-        }
-        isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizations(context)
     }
     val scope = rememberCoroutineScope()
     LaunchedEffect(log) {
@@ -156,6 +165,12 @@ fun MainUI() {
             0xFF2A2A28
         )
     )
+    val blurStyle = remember(bgColor) {
+        HazeBlurStyle {
+            blurRadius(10.dp)
+            backgroundColor(bgColor)
+        }
+    }
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
@@ -172,10 +187,18 @@ fun MainUI() {
                             if (status == Status.DISCONNECTED) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     LoadingIndicator(Modifier.size(14.dp), color = Color.White)
-                                    Text(stringResource(R.string.connecting), fontSize = 12.sp, color = Color.White)
+                                    Text(
+                                        stringResource(R.string.connecting),
+                                        fontSize = 12.sp,
+                                        color = Color.White
+                                    )
                                 }
                             } else {
-                                Text(stringResource(R.string.connected), fontSize = 12.sp, color = Color.White)
+                                Text(
+                                    stringResource(R.string.connected),
+                                    fontSize = 12.sp,
+                                    color = Color.White
+                                )
                             }
                         }
                     }
@@ -198,8 +221,9 @@ fun MainUI() {
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent
     ) { innerPadding ->
-        val clipboardManager =
+        val clipboardManager = remember(context) {
             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        }
         val hazeState = rememberHazeState()
         Column(
             Modifier
@@ -244,12 +268,10 @@ fun MainUI() {
                 Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(20.dp))
-                    .hazeEffect(state = hazeState) {
-                        blurEffect {
-                            blurRadius = 10.dp
-                            backgroundColor = bgColor
-                        }
-                    },
+                    .hazeBlur(
+                        input = HazeInput.Sources(hazeState),
+                        style = blurStyle,
+                    ),
                 trailingIcon = {
                     if (txtToSend.text.isEmpty()) IconButton({
                         val clipData = clipboardManager.primaryClip
@@ -276,13 +298,11 @@ fun MainUI() {
                         }
                         txtToSend = TextFieldValue("")
                     }
-                    .hazeEffect(state = hazeState) {
-                        blurEffect {
-                            blurRadius = 10.dp
-                            backgroundColor = bgColor
-                        }
-                    }, contentAlignment = Alignment.Center
-            ) { Icon(Icons.Default.ArrowUpward, null) }
+                    .hazeBlur(
+                        input = HazeInput.Sources(hazeState),
+                        style = blurStyle,
+                    ), contentAlignment = Alignment.Center
+            ) { Icon(Icons.Default.ArrowUpward, "发送") }
         }
     }
 }

@@ -4,26 +4,19 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.BroadcastReceiver
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.SharedPreferences
 import android.os.Build
 import android.os.IBinder
 import android.service.quicksettings.TileService
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import io.socket.client.IO
-import io.socket.client.Socket
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.net.URI
 
 object MainStateFlow {
     var _status = MutableStateFlow(Status.DISCONNECTED)
@@ -59,73 +52,6 @@ class ClipboardService : Service() {
         }
     }
 
-    private fun initSocket(url: String) {
-        MainStateFlow._status.value = Status.DISCONNECTED
-        SocketHandler.closeConnection()
-        try {
-            val uri = URI(url)
-            val pathString = uri.path ?: ""
-            val opts = IO.Options().apply {
-                transports = arrayOf("websocket")
-            }
-            if (pathString.isNotEmpty() && pathString != "/") {
-                val portStr = if (uri.port != -1) ":${uri.port}" else ""
-                val baseUrl = "${uri.scheme}://${uri.host}$portStr"
-                val cleanSubRoute = pathString.removeSuffix("/")
-                val formattedPath = "$cleanSubRoute/socket.io/"
-                opts.path = formattedPath
-                SocketHandler.setSocket(baseUrl, opts)
-            } else {
-                SocketHandler.setSocket(url)
-            }
-
-            SocketHandler.establishConnection()
-            val socket = SocketHandler.getSocket()
-            socket?.on(Socket.EVENT_CONNECT) {
-                MainStateFlow._status.value = Status.CONNECTED
-                AppState.isRunning = true
-                TileService.requestListeningState(
-                    this.applicationContext,
-                    ComponentName(this, AppLauncherTileService::class.java)
-                )
-            }
-            socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
-                MainStateFlow._shouldCopy.value = false
-                MainStateFlow._log.value = getString(R.string.error_with_message, args.lastOrNull() ?: getString(R.string.connection_failed))
-                MainStateFlow._status.value = Status.DISCONNECTED
-            }
-            socket?.on(Socket.EVENT_DISCONNECT) {
-                MainStateFlow._shouldCopy.value = false
-                MainStateFlow._status.value = Status.DISCONNECTED
-            }
-            socket?.on("message") { args ->
-                val data = args.last().toString()
-                MainStateFlow._remoteTxt.value = data
-                if (MainStateFlow.shouldCopy.value) {
-                    val cm = this.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                    cm.setPrimaryClip(ClipData.newPlainText(null, data))
-                }
-                MainStateFlow._shouldCopy.value = true
-            }
-        } catch (e: Exception) {
-            if (e.message?.contains("parse the host") == true) {
-                MainStateFlow._log.value = getString(R.string.please_configure_server_url)
-            } else {
-                MainStateFlow._log.value = getString(R.string.error_with_message, e.message)
-            }
-        }
-    }
-
-    private val prefListener =
-        SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
-            if (key == "url") {
-                val newUrl = sharedPreferences.getString("url", "")!!
-                if (newUrl.isNotEmpty()) {
-                    initSocket(newUrl)
-                }
-            }
-        }
-
     override fun onBind(p0: Intent?): IBinder? {
         return null
     }
@@ -133,30 +59,27 @@ class ClipboardService : Service() {
     override fun onCreate() {
         super.onCreate()
         val filter = IntentFilter("com.xjyzs.clipboard.CLIPBOARD_RECEIVER")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            this.registerReceiver(receiver, filter, RECEIVER_EXPORTED)
-        else
-            ContextCompat.registerReceiver(
-                this,
-                receiver,
-                filter,
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
-        getSharedPreferences("settings", MODE_PRIVATE)
-            .registerOnSharedPreferenceChangeListener(prefListener)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) this.registerReceiver(
+            receiver, filter, RECEIVER_EXPORTED
+        )
+        else ContextCompat.registerReceiver(
+            this, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED
+        )
         val channel = NotificationChannel(
             "clipboard", getString(R.string.network_clipboard), NotificationManager.IMPORTANCE_LOW
         ).apply {}
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
-        val notification =
-            NotificationCompat.Builder(this, "clipboard").setContentTitle(getString(R.string.network_clipboard_started))
-                .setSmallIcon(R.drawable.ic_launcher_foreground).build()
+        val notification = NotificationCompat.Builder(this, "clipboard")
+            .setContentTitle(getString(R.string.network_clipboard_started))
+            .setSmallIcon(R.drawable.ic_launcher_foreground).build()
         startForeground(1002, notification)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        initSocket(intent!!.getStringExtra("url")!!)
+        val url = intent?.getStringExtra("url")
+            ?: getSharedPreferences("settings", MODE_PRIVATE).getString("url", "")!!
+        SocketConnector.startOnce(this, url)
         return START_NOT_STICKY
     }
 
@@ -164,15 +87,13 @@ class ClipboardService : Service() {
         super.onDestroy()
         SocketHandler.closeConnection()
         unregisterReceiver(receiver)
-        getSharedPreferences("settings", MODE_PRIVATE)
-            .unregisterOnSharedPreferenceChangeListener(prefListener)
     }
+
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         AppState.isRunning = false
         TileService.requestListeningState(
-            this.applicationContext,
-            ComponentName(this, AppLauncherTileService::class.java)
+            this.applicationContext, ComponentName(this, AppLauncherTileService::class.java)
         )
         stopSelf()
     }
